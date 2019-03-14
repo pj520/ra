@@ -2148,7 +2148,8 @@ read_only_heartbeat_quorum(Ref, PeerId, #{waiting_ro_heartbeats := WH0,
     end.
 
 apply_or_schedule_read_only_query({From, QueryFun, ReadIndex} = Ref,
-                      #{last_applied := ApplyIndex,
+                      #{id := Id,
+                        last_applied := ApplyIndex,
                         machine_state := MacState,
                         machine := {machine, MacMod, _},
                         waiting_apply_index := Waiting} = State,
@@ -2156,13 +2157,14 @@ apply_or_schedule_read_only_query({From, QueryFun, ReadIndex} = Ref,
     case ApplyIndex >= ReadIndex of
         true ->
             Result = ra_machine:query(MacMod, QueryFun, MacState),
-            Reply = read_only_query_reply(Result, State),
+            Reply = {ok, Result, Id},
             {State, [{reply, From, Reply} | Effects]};
         false ->
             {State#{waiting_apply_index => Waiting#{Ref => ReadIndex}}, Effects}
     end.
 
-maybe_apply_read_only_queries(#{last_applied := ApplyIndex,
+maybe_apply_read_only_queries(#{id := Id,
+                                last_applied := ApplyIndex,
                                 waiting_apply_index := Waiting0,
                                 machine_state := MacState,
                                 machine := {machine, MacMod, _}} = State,
@@ -2172,7 +2174,7 @@ maybe_apply_read_only_queries(#{last_applied := ApplyIndex,
         fun({From, QueryFun, ReadIndex} = Ref, ReadIndex, {Waiting, Effects})
         when ReadIndex =< ApplyIndex ->
             Result = ra_machine:query(MacMod, QueryFun, MacState),
-            Reply = read_only_query_reply(Result, State),
+            Reply = {ok, Result, Id},
             {maps:remove(Ref, Waiting),
              [{reply, From, Reply} | Effects]};
            (_, _, {Waiting, Effects}) -> {Waiting, Effects}
@@ -2180,12 +2182,6 @@ maybe_apply_read_only_queries(#{last_applied := ApplyIndex,
         {Waiting0, Effects0},
         Waiting0),
     {State#{waiting_apply_index => Waiting1}, Effects1}.
-
-read_only_query_reply(Result, #{last_applied := Last,
-                                current_term := Term,
-                                id := Id}) ->
-    {ok, {{Last, Term}, Result}, Id}.
-
 %%% ===================
 %%% Internal unit tests
 %%% ===================
