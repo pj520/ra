@@ -29,7 +29,7 @@ The following Raft features are implemented:
 
 ## Supported Erlang/OTP Versions
 
-Ra requires Erlang/OTP 21.2+.
+Ra requires Erlang/OTP 21.3+.
 
 ## Quick start
 
@@ -115,6 +115,11 @@ Allows the configuration of a custom logger module. The default is `logger`.
 The module must implement a function of the same signature
 as [logger:log/4](http://erlang.org/doc/man/logger.html#log-4) (the variant
 that takes a format not the variant that takes a fun).
+
+* `metrics_key`:
+
+Metrics key. The key used to write metrics into the `ra_metrics` table.
+
 
 ```
 [{data_dir, "/tmp/ra-data"},
